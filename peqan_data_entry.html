@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peqan — Golden Source</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0d0f14; --surface: #13161e; --surface-2: #1a1e2a;
+    --border: #252a38; --border-active: #3a4055;
+    --accent: #c8a96e; --accent-dim: rgba(200,169,110,0.15); --accent-glow: rgba(200,169,110,0.08);
+    --text: #e8e4dc; --text-dim: #7a7f8e; --text-mid: #a8aab8;
+    --ok: #4caf8a; --ok-dim: rgba(76,175,138,0.12);
+    --warn: #e07c4a; --warn-dim: rgba(224,124,74,0.12);
+    --blue: #6b9fd4; --blue-dim: rgba(107,159,212,0.12);
+    --serif: 'DM Serif Display', Georgia, serif;
+    --mono: 'DM Mono', 'Courier New', monospace;
+    --radius: 6px; --radius-lg: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 30% 40%, rgba(200,169,110,0.06) 0%, transparent 60%);
+  }
+  .login-box {
+    width: 380px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 40px; display: flex; flex-direction: column; gap: 20px;
+  }
+  .login-logo { font-family: var(--serif); font-size: 28px; color: var(--accent); }
+  .login-logo span { display: block; font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.16em; margin-top: 2px; }
+  .login-title { font-size: 13px; color: var(--text-mid); border-top: 1px solid var(--border); padding-top: 20px; }
+
+  /* ── CONFIG BANNER ── */
+  #config-banner {
+    background: var(--warn-dim); border: 1px solid rgba(224,124,74,0.4);
+    border-radius: var(--radius); padding: 12px 16px; font-size: 11px; color: var(--warn);
+    display: none; line-height: 1.6;
+  }
+  #config-banner code { background: rgba(224,124,74,0.15); padding: 1px 5px; border-radius: 3px; font-size: 10px; }
+
+  /* ── APP ── */
+  #app-screen { display: none; flex: 1; flex-direction: column; }
+  header {
+    border-bottom: 1px solid var(--border); padding: 16px 32px;
+    display: flex; align-items: center; gap: 16px;
+    background: var(--surface); position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: var(--serif); font-size: 20px; color: var(--accent); }
+  .logo span { color: var(--text-dim); font-size: 10px; font-family: var(--mono); display: block; margin-top: -2px; letter-spacing: 0.12em; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .user-chip { font-size: 11px; color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; }
+  #conn-status { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); display: inline-block; }
+
+  /* ── LAYOUT ── */
+  .layout { display: flex; flex: 1; }
+  nav { width: 210px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--surface); padding: 24px 0; position: sticky; top: 57px; height: calc(100vh - 57px); overflow-y: auto; }
+  .nav-section { padding: 0 16px 8px; font-size: 9px; letter-spacing: 0.18em; color: var(--text-dim); text-transform: uppercase; margin-top: 16px; }
+  nav a { display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: var(--text-mid); text-decoration: none; font-size: 12px; border-left: 2px solid transparent; transition: all 0.15s; cursor: pointer; }
+  nav a:hover { background: var(--accent-glow); color: var(--text); }
+  nav a.active { border-left-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .nav-icon { width: 14px; text-align: center; opacity: 0.7; }
+  nav a.active .nav-icon { opacity: 1; }
+  main { flex: 1; padding: 32px 40px; max-width: 900px; }
+  .form-panel { display: none; }
+  .form-panel.active { display: block; }
+
+  /* ── PAGE TITLE ── */
+  .page-title { margin-bottom: 28px; }
+  .page-title h1 { font-family: var(--serif); font-size: 26px; color: var(--text); font-weight: 400; margin-bottom: 4px; }
+  .page-title p { color: var(--text-dim); font-size: 11px; line-height: 1.6; }
+
+  /* ── FORM ── */
+  .form-section { margin-bottom: 26px; }
+  .form-section-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .form-section-label::before { content: ''; width: 3px; height: 3px; background: var(--accent); border-radius: 50%; }
+  .grid { display: grid; gap: 14px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 10px; color: var(--text-mid); letter-spacing: 0.08em; display: flex; align-items: center; gap: 5px; }
+  .field label .req { color: var(--accent); }
+  .meta-tag { display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 3px; font-size: 9px; letter-spacing: 0.1em; }
+  .tag-auto { background: var(--ok-dim); color: var(--ok); border: 1px solid rgba(76,175,138,0.3); }
+  .field input, .field select, .field textarea {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 9px 11px; color: var(--text); font-family: var(--mono); font-size: 12px;
+    outline: none; transition: border-color 0.15s, background 0.15s; width: 100%; appearance: none;
+  }
+  .field input::placeholder { color: var(--text-dim); }
+  .field select option { background: var(--surface-2); }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--border-active); background: var(--surface); }
+  .field input.filled, .field select.filled { border-color: var(--border-active); }
+  .field .hint { font-size: 10px; color: var(--text-dim); }
+  .field input:disabled, .field select:disabled { opacity: 0.5; cursor: not-allowed; }
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* ── ACTIONS ── */
+  .actions { display: flex; gap: 10px; align-items: center; padding-top: 20px; border-top: 1px solid var(--border); margin-top: 8px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: var(--radius); font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #0d0f14; font-weight: 500; }
+  .btn-primary:hover { background: #d9bb85; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: transparent; border: 1px solid var(--border-active); color: var(--text-mid); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+  .btn-danger { background: transparent; border: 1px solid rgba(224,124,74,0.4); color: var(--warn); }
+  .btn-danger:hover { background: var(--warn-dim); }
+  .saving-indicator { font-size: 11px; color: var(--text-dim); display: none; }
+  .saving-indicator.visible { display: inline; }
+
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 24px; right: 24px; font-family: var(--mono); font-size: 12px; font-weight: 500; padding: 11px 18px; border-radius: var(--radius); opacity: 0; transform: translateY(8px); transition: opacity 0.2s, transform 0.2s; z-index: 999; pointer-events: none; }
+  .toast.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── RECORDS ── */
+  .records-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .records-header h3 { font-family: var(--serif); font-weight: 400; font-size: 16px; color: var(--text-mid); }
+  .badge-count { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim); font-size: 10px; padding: 1px 7px; border-radius: 10px; }
+  .records-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .records-table th { text-align: left; padding: 7px 10px; color: var(--text-dim); font-weight: 400; letter-spacing: 0.1em; border-bottom: 1px solid var(--border); font-size: 10px; }
+  .records-table td { padding: 8px 10px; border-bottom: 1px solid rgba(37,42,56,0.5); color: var(--text-mid); }
+  .records-table tr:hover td { background: var(--surface-2); }
+  .records-table td:first-child { color: var(--text); }
+  .empty-state { text-align: center; padding: 32px; color: var(--text-dim); font-size: 12px; border: 1px dashed var(--border); border-radius: var(--radius-lg); }
+  .empty-state p:first-child { font-size: 24px; margin-bottom: 8px; }
+  .load-row { text-align: center; padding: 20px; color: var(--text-dim); font-size: 11px; }
+
+  /* ── ERROR ── */
+  .error-msg { background: var(--warn-dim); border: 1px solid rgba(224,124,74,0.4); border-radius: var(--radius); padding: 8px 12px; font-size: 11px; color: var(--warn); display: none; }
+  .error-msg.visible { display: block; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 700px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } main { padding: 20px 16px; } nav { display: none; } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Peqan <span>GOLDEN SOURCE — FUND SERVICES</span></div>
+    <div id="config-banner">
+      ⚠ Configuration requise — ouvre ce fichier dans un éditeur et remplace les deux constantes en haut du script :<br><br>
+      <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code>
+    </div>
+    <div class="login-title">Connexion à l'espace de saisie</div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="prenom.nom@peqan.fr" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="error-msg" id="login-error"></div>
+    <button class="btn btn-primary" onclick="signIn()" style="width:100%; justify-content:center; padding:12px">
+      Connexion →
+    </button>
+    <div style="font-size:10px; color:var(--text-dim); text-align:center; margin-top:-8px">
+      Accès restreint — Peqan Fund Services
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ APP ═══════════════ -->
+<div id="app-screen">
+  <header>
+    <div class="logo">Peqan <span>GOLDEN SOURCE</span></div>
+    <div class="header-right">
+      <span id="conn-status"></span>
+      <span class="user-chip" id="user-email">—</span>
+      <button class="btn btn-secondary" style="padding:5px 12px; font-size:10px" onclick="signOut()">Déconnexion</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav>
+      <div class="nav-section">Référentiel statique</div>
+      <a class="active" onclick="showPanel('fund')" id="nav-fund"><span class="nav-icon">◈</span> Fonds</a>
+      <a onclick="showPanel('share')" id="nav-share"><span class="nav-icon">◇</span> Catégories de parts</a>
+      <div class="nav-section">Données périodiques</div>
+      <a onclick="showPanel('snapshot')" id="nav-snapshot"><span class="nav-icon">◉</span> Snapshot VL</a>
+      <a onclick="showPanel('portfolio')" id="nav-portfolio"><span class="nav-icon">◎</span> Portefeuille</a>
+    </nav>
+
+    <main>
+
+      <!-- ── FONDS ── -->
+      <div class="form-panel active" id="panel-fund">
+        <div class="page-title">
+          <h1>Fonds — données statiques</h1>
+          <p>Table <code>fund_static_data</code> · Responsabilité MO · Contrôle DG · Source : Règlement</p>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Identification</div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Nom du fonds <span class="req">*</span></label>
+              <input type="text" id="f_fund_name" placeholder="ex. Peqan Co Investissement 2024" oninput="markFilled(this)">
+            </div>
+            <div class="field">
+              <label>Code fonds (fund_id) <span class="req">*</span></label>
+              <input type="text" id="f_fund_id" placeholder="ex. FIA2" oninput="this.value=this.value.toUpperCase(); markFilled(this)">
+              <span class="hint">Clé interne — liaison avec toutes les tables</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Forme juridique & classification</div>
+          <div class="grid grid-3">
+            <div class="field">
+              <label>Forme juridique <span class="req">*</span></label>
+              <select id="f_legal_form" onchange="markFilled(this)">
+                <option value="">— Sélectionner —</option>
+                <option>FCPR</option><option>FPCI</option><option>SLP</option>
+                <option>FCPI</option><option>FIP</option><option>SICAV</option><option>Autre</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Type de fonds <span class="req">*</span></label>
+              <select id="f_fund_type" onchange="markFilled(this)">
+                <option value="">— Sélectionner —</option>
+                <option value="closed_ended">Closed-ended</option>
+                <option value="evergreen">Evergreen</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Devise de référence <span class="req">*</span></label>
+              <select id="f_fund_currency" onchange="markFilled(this)">
+                <option value="EUR">EUR</option><option value="USD">USD</option>
+                <option value="GBP">GBP</option><option value="CHF">CHF</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Article SFDR</label>
+              <select id="f_sfdr_article" onchange="markFilled(this)">
+                <option value="">—</option>
+                <option value="6">Article 6</option><option value="8">Article 8</option><option value="9">Article 9</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Fréquence de valorisation</label>
+              <select id="f_valuation_frequency" onchange="markFilled(this)">
+                <option value="">—</option>
+                <option value="1">Mensuelle</option><option value="3">Trimestrielle</option>
+                <option value="6">Semestrielle</option><option value="12">Annuelle</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Clôture exercice</label>
+              <input type="text" id="f_accounting_year_end" placeholder="31/12" oninput="markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Dates & durée</div>
+          <div class="grid grid-3">
+            <div class="field">
+              <label>Date d'agrément AMF</label>
+              <input type="date" id="f_amf_approval_date" oninput="markFilled(this)">
+            </div>
+            <div class="field">
+              <label>Date de constitution</label>
+              <input type="date" id="f_inception_date" oninput="markFilled(this)">
+            </div>
+            <div class="field">
+              <label>Durée de vie (années)</label>
+              <input type="number" id="f_fund_life_years" placeholder="10" min="1" max="30" oninput="markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Gestion</div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Société de gestion <span class="req">*</span></label>
+              <input type="text" id="f_management_company" value="Peqan" oninput="markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="error-msg" id="fund-error"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="fund-save-btn" onclick="saveFund()">↓ Enregistrer le fonds</button>
+          <button class="btn btn-secondary" onclick="clearForm('fund')">Effacer</button>
+          <span class="saving-indicator" id="fund-saving">Enregistrement…</span>
+        </div>
+        <div class="divider"></div>
+        <div class="records-header">
+          <h3>Fonds enregistrés</h3>
+          <span class="badge-count" id="fund-count">—</span>
+        </div>
+        <div id="fund-records"><div class="load-row">Chargement…</div></div>
+      </div>
+
+      <!-- ── PARTS ── -->
+      <div class="form-panel" id="panel-share">
+        <div class="page-title">
+          <h1>Catégories de parts — données statiques</h1>
+          <p>Table <code>share_class_static_data</code> · Responsabilité MO · Source : Règlement</p>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Rattachement au fonds</div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Fonds <span class="req">*</span></label>
+              <select id="s_fund_id" onchange="onFundChangeShare(this)">
+                <option value="">— Sélectionner un fonds —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Nom du fonds <span class="meta-tag tag-auto">auto</span></label>
+              <input type="text" id="s_fund_name" disabled>
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Identification de la part</div>
+          <div class="grid grid-3">
+            <div class="field">
+              <label>Catégorie <span class="req">*</span></label>
+              <input type="text" id="s_share_class_name" placeholder="ex. A1, B, C" oninput="markFilled(this); buildShareClassId()">
+            </div>
+            <div class="field">
+              <label>share_class_id <span class="meta-tag tag-auto">auto</span></label>
+              <input type="text" id="s_share_class_id" disabled>
+              <span class="hint">fund_id + share_class_name</span>
+            </div>
+            <div class="field">
+              <label>Code ISIN <span class="req">*</span></label>
+              <input type="text" id="s_isin_code" placeholder="FR0014004909" maxlength="12" oninput="this.value=this.value.toUpperCase(); markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Caractéristiques financières</div>
+          <div class="grid grid-3">
+            <div class="field">
+              <label>Valeur nominale <span class="req">*</span></label>
+              <input type="number" id="s_nominal_value" placeholder="100" min="0" step="any" oninput="markFilled(this)">
+            </div>
+            <div class="field">
+              <label>Devise</label>
+              <select id="s_currency">
+                <option value="EUR">EUR</option><option value="USD">USD</option>
+                <option value="GBP">GBP</option><option value="CHF">CHF</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Frais de gestion (%/an)</label>
+              <input type="number" id="s_management_fee_rate" placeholder="1.80" step="0.001" min="0" max="10" oninput="markFilled(this)">
+              <span class="hint">Saisir en % — stocké en décimal</span>
+            </div>
+            <div class="field">
+              <label>Frais de distribution (%/an)</label>
+              <input type="number" id="s_distribution_fee_rate" placeholder="0.80" step="0.001" min="0" max="10" oninput="markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="error-msg" id="share-error"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="share-save-btn" onclick="saveShare()">↓ Enregistrer la catégorie</button>
+          <button class="btn btn-secondary" onclick="clearForm('share')">Effacer</button>
+          <span class="saving-indicator" id="share-saving">Enregistrement…</span>
+        </div>
+        <div class="divider"></div>
+        <div class="records-header">
+          <h3>Parts enregistrées</h3>
+          <span class="badge-count" id="share-count">—</span>
+        </div>
+        <div id="share-records"><div class="load-row">Chargement…</div></div>
+      </div>
+
+      <!-- ── SNAPSHOT ── -->
+      <div class="form-panel" id="panel-snapshot">
+        <div class="page-title">
+          <h1>Snapshot VL — données périodiques</h1>
+          <p>Table <code>fund_snapshot</code> · Une ligne par catégorie de parts × date d'arrêté</p>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Identification</div>
+          <div class="grid grid-3">
+            <div class="field">
+              <label>Fonds <span class="req">*</span></label>
+              <select id="sn_fund_id" onchange="onFundChangeSnapshot(this)">
+                <option value="">— Sélectionner —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Catégorie de parts <span class="req">*</span></label>
+              <select id="sn_share_class_id">
+                <option value="">— d'abord choisir un fonds —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Date de snapshot <span class="req">*</span></label>
+              <input type="date" id="sn_snap_date" oninput="markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Quantitatif</div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Parts émises <span class="req">*</span></label>
+              <input type="number" id="sn_shares_issued" step="any" min="0" oninput="markFilled(this); calcDerived()">
+            </div>
+            <div class="field">
+              <label>Taux d'appel <span class="req">*</span></label>
+              <input type="number" id="sn_called_percentage" placeholder="0.40" step="0.01" min="0" max="1" oninput="markFilled(this); calcDerived()">
+              <span class="hint">Décimal — 0.40 = 40%</span>
+            </div>
+            <div class="field">
+              <label>Engagement souscrit (€) <span class="req">*</span></label>
+              <input type="number" id="sn_commitment_amount" step="any" min="0" oninput="markFilled(this); calcDerived()">
+            </div>
+            <div class="field">
+              <label>Actif net / NAV (€) <span class="req">*</span></label>
+              <input type="number" id="sn_net_asset_value" step="any" oninput="markFilled(this); calcDerived()">
+            </div>
+          </div>
+          <div class="grid grid-2" style="margin-top:10px">
+            <div class="field">
+              <label>VL / part <span class="meta-tag tag-auto">calculé</span></label>
+              <input type="text" id="sn_nav_per_share" disabled placeholder="NAV ÷ parts émises">
+            </div>
+            <div class="field">
+              <label>Multiple appelé/NAV <span class="meta-tag tag-auto">calculé</span></label>
+              <input type="text" id="sn_called_multiple" disabled placeholder="(appel × engagement) ÷ NAV">
+            </div>
+          </div>
+        </div>
+        <div class="error-msg" id="snapshot-error"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="snapshot-save-btn" onclick="saveSnapshot()">↓ Enregistrer le snapshot</button>
+          <button class="btn btn-secondary" onclick="clearForm('snapshot')">Effacer</button>
+          <span class="saving-indicator" id="snapshot-saving">Enregistrement…</span>
+        </div>
+        <div class="divider"></div>
+        <div class="records-header">
+          <h3>Snapshots enregistrés</h3>
+          <span class="badge-count" id="snapshot-count">—</span>
+        </div>
+        <div id="snapshot-records"><div class="load-row">Chargement…</div></div>
+      </div>
+
+      <!-- ── PORTFOLIO ── -->
+      <div class="form-panel" id="panel-portfolio">
+        <div class="page-title">
+          <h1>Portefeuille — lignes d'investissement</h1>
+          <p>Table <code>fund_portfolio</code> · Une ligne par véhicule × date de snapshot</p>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Fonds & date</div>
+          <div class="grid grid-3">
+            <div class="field">
+              <label>Fonds <span class="req">*</span></label>
+              <select id="p_fund_id" onchange="onFundChangePortfolio(this)">
+                <option value="">— Sélectionner —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Nom du fonds <span class="meta-tag tag-auto">auto</span></label>
+              <input type="text" id="p_fund_name" disabled>
+            </div>
+            <div class="field">
+              <label>Date snapshot <span class="req">*</span></label>
+              <input type="date" id="p_snap_date" oninput="markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Gérant & véhicule</div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Société de gestion <span class="req">*</span></label>
+              <input type="text" id="p_fund_company" placeholder="ex. BEX CAPITAL" oninput="this.value=this.value.toUpperCase(); markFilled(this)">
+            </div>
+            <div class="field">
+              <label>Véhicule <span class="req">*</span></label>
+              <input type="text" id="p_vehicle" placeholder="ex. BEX FUND IV" oninput="this.value=this.value.toUpperCase(); markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Classification</div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Stratégie <span class="req">*</span></label>
+              <select id="p_strategy" onchange="markFilled(this)">
+                <option value="">— Sélectionner —</option>
+                <option>Buyout</option><option>Venture Capital</option><option>Growth</option>
+                <option>Secondaire – LP Led</option><option>Secondaire – Mixte</option>
+                <option>Secondaire – GP Led</option><option>Infrastructure</option>
+                <option>Dette privée</option><option>Real Assets</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Type d'opération <span class="req">*</span></label>
+              <select id="p_operation_type" onchange="markFilled(this)">
+                <option value="">— Sélectionner —</option>
+                <option value="Primaire">Primaire</option>
+                <option value="Direct">Direct</option>
+                <option value="Secondaire">Secondaire</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Valeurs financières</div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Montant engagé (€)</label>
+              <input type="number" id="p_investment_committed" step="any" min="0" oninput="markFilled(this)">
+            </div>
+            <div class="field">
+              <label>Valeur actuelle (€)</label>
+              <input type="number" id="p_investment_value" step="any" min="0" oninput="markFilled(this)">
+            </div>
+          </div>
+        </div>
+        <div class="error-msg" id="portfolio-error"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="portfolio-save-btn" onclick="savePortfolio()">↓ Enregistrer la ligne</button>
+          <button class="btn btn-secondary" onclick="clearForm('portfolio')">Effacer</button>
+          <span class="saving-indicator" id="portfolio-saving">Enregistrement…</span>
+        </div>
+        <div class="divider"></div>
+        <div class="records-header">
+          <h3>Lignes portefeuille</h3>
+          <span class="badge-count" id="portfolio-count">—</span>
+        </div>
+        <div id="portfolio-records"><div class="load-row">Chargement…</div></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  CONFIGURATION — REMPLACER CES DEUX VALEURS
+//  (Settings → API dans ton projet Supabase)
+// ════════════════════════════════════════════════════════
+const SUPABASE_URL      = 'https://fzpbfabkwvyxkdshefsb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6cGJmYWJrd3Z5eGtkc2hlZnNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NzIyMTAsImV4cCI6MjA5MjM0ODIxMH0.zl7Mu1U3e3uJG5YheKjSsNguODrjbYLpRCVz1UVyD6U';
+// ════════════════════════════════════════════════════════
+
+const IS_CONFIGURED = !SUPABASE_URL.includes('REMPLACER');
+
+let supabase, currentUser;
+
+// ── Init ─────────────────────────────────────────────
+if (!IS_CONFIGURED) {
+  document.getElementById('config-banner').style.display = 'block';
+} else {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  checkSession();
+}
+
+async function checkSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) bootApp(session.user);
+}
+
+// ── Auth ──────────────────────────────────────────────
+async function signIn() {
+  if (!IS_CONFIGURED) return;
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  errEl.classList.remove('visible');
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) { errEl.textContent = error.message; errEl.classList.add('visible'); return; }
+  bootApp(data.user);
+}
+
+async function signOut() {
+  await supabase.auth.signOut();
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  currentUser = null;
+}
+
+function bootApp(user) {
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display   = 'flex';
+  document.getElementById('user-email').textContent = user.email;
+  loadAllData();
+}
+
+// ── Data loading ──────────────────────────────────────
+let FUNDS = []; // cache local pour les selects
+
+async function loadAllData() {
+  await loadFunds();
+  loadShares();
+  loadSnapshots();
+  loadPortfolio();
+}
+
+async function loadFunds() {
+  const { data, error } = await supabase
+    .from('fund_static_data')
+    .select('fund_id, fund_name, legal_form, fund_type, fund_currency, sfdr_article, management_company')
+    .order('fund_id');
+  if (error) { console.error(error); return; }
+  FUNDS = data || [];
+  document.getElementById('fund-count').textContent = FUNDS.length;
+  renderFundTable(FUNDS);
+  refreshFundSelects();
+}
+
+async function loadShares() {
+  const { data, error } = await supabase
+    .from('share_class_static_data')
+    .select('share_class_id, fund_id, share_class_name, isin_code, nominal_value, currency, management_fee_rate, distribution_fee_rate')
+    .order('share_class_id');
+  if (error) { console.error(error); return; }
+  document.getElementById('share-count').textContent = (data||[]).length;
+  renderShareTable(data || []);
+}
+
+async function loadSnapshots() {
+  const { data, error } = await supabase
+    .from('fund_snapshot')
+    .select('share_class_id, fund_code, snap_date, shares_issued, called_percentage, net_asset_value')
+    .order('snap_date', { ascending: false })
+    .limit(50);
+  if (error) { console.error(error); return; }
+  document.getElementById('snapshot-count').textContent = (data||[]).length + (data?.length===50?'+':'');
+  renderSnapshotTable(data || []);
+}
+
+async function loadPortfolio() {
+  const { data, error } = await supabase
+    .from('fund_portfolio')
+    .select('fund_id, fund_company, vehicle, strategy, operation_type, snap_date, investment_committed, investment_value')
+    .order('snap_date', { ascending: false })
+    .limit(100);
+  if (error) { console.error(error); return; }
+  document.getElementById('portfolio-count').textContent = (data||[]).length + (data?.length===100?'+':'');
+  renderPortfolioTable(data || []);
+}
+
+// ── Selects refresh ───────────────────────────────────
+function refreshFundSelects() {
+  ['s_fund_id','sn_fund_id','p_fund_id'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Sélectionner un fonds —</option>';
+    FUNDS.forEach(f => {
+      const o = document.createElement('option');
+      o.value = f.fund_id;
+      o.textContent = f.fund_id + ' — ' + f.fund_name;
+      sel.appendChild(o);
+    });
+    sel.value = cur;
+  });
+}
+
+function onFundChangeShare(sel) {
+  const f = FUNDS.find(x => x.fund_id === sel.value);
+  document.getElementById('s_fund_name').value = f ? f.fund_name : '';
+  buildShareClassId();
+}
+function buildShareClassId() {
+  const fid = v('s_fund_id'), scn = v('s_share_class_name');
+  document.getElementById('s_share_class_id').value = fid && scn ? fid + scn.replace(/\s/g,'') : '';
+}
+
+async function onFundChangeSnapshot(sel) {
+  const f = FUNDS.find(x => x.fund_id === sel.value);
+  document.getElementById('sn_fund_id').dataset.fundName = f ? f.fund_name : '';
+  const sc = document.getElementById('sn_share_class_id');
+  sc.innerHTML = '<option value="">— Chargement… —</option>';
+  if (!sel.value) { sc.innerHTML = '<option value="">— Sélectionner —</option>'; return; }
+  const { data } = await supabase
+    .from('share_class_static_data')
+    .select('share_class_id, share_class_name')
+    .eq('fund_id', sel.value)
+    .order('share_class_id');
+  sc.innerHTML = '<option value="">— Sélectionner —</option>';
+  (data||[]).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.share_class_id;
+    o.textContent = s.share_class_id + ' (' + s.share_class_name + ')';
+    sc.appendChild(o);
+  });
+}
+
+function onFundChangePortfolio(sel) {
+  const f = FUNDS.find(x => x.fund_id === sel.value);
+  document.getElementById('p_fund_name').value = f ? f.fund_name : '';
+}
+
+// ── Computed ──────────────────────────────────────────
+function calcDerived() {
+  const shares     = parseFloat(document.getElementById('sn_shares_issued').value);
+  const nav        = parseFloat(document.getElementById('sn_net_asset_value').value);
+  const called     = parseFloat(document.getElementById('sn_called_percentage').value);
+  const commitment = parseFloat(document.getElementById('sn_commitment_amount').value);
+  document.getElementById('sn_nav_per_share').value   = (shares > 0 && nav)   ? (nav/shares).toFixed(4)                                 : '';
+  document.getElementById('sn_called_multiple').value = (nav > 0 && called && commitment) ? ((called*commitment/nav).toFixed(3)+'x') : '';
+}
+
+// ── Save functions ────────────────────────────────────
+async function saveFund() {
+  showError('fund', '');
+  if (!v('f_fund_name') || !v('f_fund_id') || !v('f_legal_form') || !v('f_fund_type')) {
+    return showError('fund', 'Nom, code, forme juridique et type sont obligatoires.');
+  }
+  setSaving('fund', true);
+  const { error } = await supabase.from('fund_static_data').insert({
+    fund_id:              v('f_fund_id'),
+    fund_name:            v('f_fund_name'),
+    legal_form:           v('f_legal_form'),
+    fund_type:            v('f_fund_type'),
+    fund_currency:        v('f_fund_currency') || 'EUR',
+    sfdr_article:         v('f_sfdr_article')  ? parseInt(v('f_sfdr_article'))  : null,
+    amf_approval_date:    v('f_amf_approval_date')  || null,
+    inception_date:       v('f_inception_date')      || null,
+    management_company:   v('f_management_company')  || 'Peqan',
+    fund_life_years:      v('f_fund_life_years')     ? parseInt(v('f_fund_life_years')) : null,
+    accounting_year_end:  v('f_accounting_year_end') || null,
+    valuation_frequency:  v('f_valuation_frequency') ? parseInt(v('f_valuation_frequency')) : null,
+    created_by:           currentUser.id,
+  });
+  setSaving('fund', false);
+  if (error) return showError('fund', error.message);
+  showToast('Fonds « ' + v('f_fund_id') + ' » enregistré');
+  clearForm('fund');
+  loadFunds();
+}
+
+async function saveShare() {
+  showError('share', '');
+  if (!v('s_fund_id') || !v('s_share_class_name') || !v('s_isin_code') || !v('s_nominal_value')) {
+    return showError('share', 'Fonds, catégorie, ISIN et valeur nominale sont obligatoires.');
+  }
+  const isin = v('s_isin_code');
+  if (!/^[A-Z]{2}[A-Z0-9]{10}$/.test(isin)) return showError('share', 'Format ISIN invalide (ex. FR0014004909)');
+  setSaving('share', true);
+  const { error } = await supabase.from('share_class_static_data').insert({
+    fund_id:               v('s_fund_id'),
+    share_class_id:        document.getElementById('s_share_class_id').value,
+    share_class_name:      v('s_share_class_name'),
+    isin_code:             isin,
+    nominal_value:         parseFloat(v('s_nominal_value')),
+    currency:              v('s_currency') || 'EUR',
+    management_fee_rate:   v('s_management_fee_rate')   ? parseFloat(v('s_management_fee_rate'))/100   : null,
+    distribution_fee_rate: v('s_distribution_fee_rate') ? parseFloat(v('s_distribution_fee_rate'))/100 : null,
+    created_by:            currentUser.id,
+  });
+  setSaving('share', false);
+  if (error) return showError('share', error.message);
+  showToast('Part « ' + document.getElementById('s_share_class_id').value + ' » enregistrée');
+  clearForm('share');
+  loadShares();
+}
+
+async function saveSnapshot() {
+  showError('snapshot', '');
+  if (!v('sn_fund_id') || !v('sn_share_class_id') || !v('sn_snap_date') || !v('sn_shares_issued') || !v('sn_net_asset_value')) {
+    return showError('snapshot', 'Fonds, catégorie, date, parts émises et NAV sont obligatoires.');
+  }
+  setSaving('snapshot', true);
+  const { error } = await supabase.from('fund_snapshot').insert({
+    fund_code:          v('sn_fund_id'),
+    share_class_id:     v('sn_share_class_id'),
+    snap_date:          v('sn_snap_date'),
+    shares_issued:      parseFloat(v('sn_shares_issued')),
+    called_percentage:  v('sn_called_percentage') ? parseFloat(v('sn_called_percentage')) : null,
+    commitment_amount:  v('sn_commitment_amount') ? parseFloat(v('sn_commitment_amount')) : null,
+    net_asset_value:    parseFloat(v('sn_net_asset_value')),
+    created_by:         currentUser.id,
+  });
+  setSaving('snapshot', false);
+  if (error) return showError('snapshot', error.message.includes('unique') ? 'Un snapshot existe déjà pour cette part à cette date.' : error.message);
+  showToast('Snapshot enregistré en base');
+  clearForm('snapshot');
+  loadSnapshots();
+}
+
+async function savePortfolio() {
+  showError('portfolio', '');
+  if (!v('p_fund_id') || !v('p_fund_company') || !v('p_vehicle') || !v('p_snap_date') || !v('p_strategy') || !v('p_operation_type')) {
+    return showError('portfolio', 'Fonds, gestionnaire, véhicule, date, stratégie et type sont obligatoires.');
+  }
+  setSaving('portfolio', true);
+  const { error } = await supabase.from('fund_portfolio').insert({
+    fund_id:              v('p_fund_id'),
+    fund_company:         v('p_fund_company'),
+    vehicle:              v('p_vehicle'),
+    strategy:             v('p_strategy'),
+    operation_type:       v('p_operation_type'),
+    snap_date:            v('p_snap_date'),
+    investment_committed: v('p_investment_committed') ? parseFloat(v('p_investment_committed')) : null,
+    investment_value:     v('p_investment_value')     ? parseFloat(v('p_investment_value'))     : null,
+    created_by:           currentUser.id,
+  });
+  setSaving('portfolio', false);
+  if (error) return showError('portfolio', error.message.includes('unique') ? 'Cette ligne (fonds × véhicule × date) existe déjà.' : error.message);
+  showToast('Ligne portefeuille enregistrée');
+  clearForm('portfolio');
+  loadPortfolio();
+}
+
+// ── Render tables ─────────────────────────────────────
+function renderFundTable(rows) {
+  const el = document.getElementById('fund-records');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><p>◈</p><p>Aucun fonds enregistré</p></div>'; return; }
+  el.innerHTML = `<table class="records-table"><thead><tr>
+    <th>fund_id</th><th>Nom</th><th>Forme</th><th>Type</th><th>Devise</th><th>SFDR</th>
+  </tr></thead><tbody>` + rows.map(f => `<tr>
+    <td>${f.fund_id}</td><td>${f.fund_name}</td><td>${f.legal_form||'—'}</td>
+    <td>${f.fund_type||'—'}</td><td>${f.fund_currency||'—'}</td><td>${f.sfdr_article ? 'Art. '+f.sfdr_article : '—'}</td>
+  </tr>`).join('') + '</tbody></table>';
+}
+
+function renderShareTable(rows) {
+  const el = document.getElementById('share-records');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><p>◇</p><p>Aucune catégorie de parts</p></div>'; return; }
+  el.innerHTML = `<table class="records-table"><thead><tr>
+    <th>share_class_id</th><th>Fonds</th><th>ISIN</th><th>Nominale</th><th>Gestion</th><th>Distribution</th>
+  </tr></thead><tbody>` + rows.map(s => `<tr>
+    <td>${s.share_class_id}</td><td>${s.fund_id}</td><td>${s.isin_code||'—'}</td>
+    <td>${s.nominal_value} ${s.currency}</td>
+    <td>${s.management_fee_rate   != null ? (s.management_fee_rate*100).toFixed(3)   + '%' : '—'}</td>
+    <td>${s.distribution_fee_rate != null ? (s.distribution_fee_rate*100).toFixed(3) + '%' : '—'}</td>
+  </tr>`).join('') + '</tbody></table>';
+}
+
+function renderSnapshotTable(rows) {
+  const el = document.getElementById('snapshot-records');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><p>◉</p><p>Aucun snapshot</p></div>'; return; }
+  el.innerHTML = `<table class="records-table"><thead><tr>
+    <th>Part</th><th>Date</th><th>Parts émises</th><th>Appel</th><th>NAV (€)</th>
+  </tr></thead><tbody>` + rows.map(s => `<tr>
+    <td>${s.share_class_id}</td><td>${s.snap_date}</td>
+    <td>${s.shares_issued?.toLocaleString('fr-FR')}</td>
+    <td>${s.called_percentage != null ? (s.called_percentage*100).toFixed(0)+'%' : '—'}</td>
+    <td>${s.net_asset_value?.toLocaleString('fr-FR',{maximumFractionDigits:0})}</td>
+  </tr>`).join('') + '</tbody></table>';
+}
+
+function renderPortfolioTable(rows) {
+  const el = document.getElementById('portfolio-records');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><p>◎</p><p>Aucune ligne de portefeuille</p></div>'; return; }
+  el.innerHTML = `<table class="records-table"><thead><tr>
+    <th>Fonds</th><th>Gestionnaire</th><th>Véhicule</th><th>Stratégie</th><th>Date</th><th>Engagé (€)</th>
+  </tr></thead><tbody>` + rows.map(p => `<tr>
+    <td>${p.fund_id}</td><td>${p.fund_company}</td><td>${p.vehicle}</td>
+    <td>${p.strategy||'—'}</td><td>${p.snap_date}</td>
+    <td>${p.investment_committed?.toLocaleString('fr-FR',{maximumFractionDigits:0})||'—'}</td>
+  </tr>`).join('') + '</tbody></table>';
+}
+
+// ── Navigation ────────────────────────────────────────
+function showPanel(name) {
+  document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (['share','snapshot','portfolio'].includes(name)) refreshFundSelects();
+}
+
+// ── Helpers ───────────────────────────────────────────
+function v(id) { return document.getElementById(id).value.trim(); }
+function markFilled(el) { el.value ? el.classList.add('filled') : el.classList.remove('filled'); }
+function showError(form, msg) {
+  const el = document.getElementById(form+'-error');
+  el.textContent = msg; msg ? el.classList.add('visible') : el.classList.remove('visible');
+}
+function setSaving(form, on) {
+  document.getElementById(form+'-save-btn').disabled = on;
+  const ind = document.getElementById(form+'-saving');
+  on ? ind.classList.add('visible') : ind.classList.remove('visible');
+}
+function showToast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = ok ? 'var(--ok)' : 'var(--warn)';
+  t.style.color = ok ? '#0d0f14' : '#0d0f14';
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 2800);
+}
+function clearForm(type) {
+  const p = {fund:'f_', share:'s_', snapshot:'sn_', portfolio:'p_'}[type];
+  document.querySelectorAll('[id^="'+p+'"]').forEach(el => {
+    if (el.disabled || el.id === 'f_management_company') return;
+    if (el.tagName==='SELECT') el.selectedIndex = 0;
+    else el.value = '';
+    el.classList.remove('filled');
+  });
+  showError(type, '');
+}
+
+// ── Enter key on login ────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') signIn();
+  });
+});
+</script>
+</body>
+</html>
