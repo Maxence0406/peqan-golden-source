@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- LANCEMENT : ouvrir PowerShell dans le dossier du fichier, taper : python -m http.server 8080 puis aller sur http://localhost:8080/peqan_data_entry.html -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -556,18 +557,18 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const IS_CONFIGURED = !SUPABASE_URL.includes('REMPLACER');
 
-let supabase, currentUser;
+let supabaseClient, currentUser;
 
 // ── Init ─────────────────────────────────────────────
 if (!IS_CONFIGURED) {
   document.getElementById('config-banner').style.display = 'block';
 } else {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   checkSession();
 }
 
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) bootApp(session.user);
 }
 
@@ -579,13 +580,13 @@ async function signIn() {
   const errEl    = document.getElementById('login-error');
   errEl.classList.remove('visible');
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) { errEl.textContent = error.message; errEl.classList.add('visible'); return; }
   bootApp(data.user);
 }
 
 async function signOut() {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   currentUser = null;
@@ -610,7 +611,7 @@ async function loadAllData() {
 }
 
 async function loadFunds() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('fund_static_data')
     .select('fund_id, fund_name, legal_form, fund_type, fund_currency, sfdr_article, management_company')
     .order('fund_id');
@@ -622,7 +623,7 @@ async function loadFunds() {
 }
 
 async function loadShares() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('share_class_static_data')
     .select('share_class_id, fund_id, share_class_name, isin_code, nominal_value, currency, management_fee_rate, distribution_fee_rate')
     .order('share_class_id');
@@ -632,7 +633,7 @@ async function loadShares() {
 }
 
 async function loadSnapshots() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('fund_snapshot')
     .select('share_class_id, fund_code, snap_date, shares_issued, called_percentage, net_asset_value')
     .order('snap_date', { ascending: false })
@@ -643,7 +644,7 @@ async function loadSnapshots() {
 }
 
 async function loadPortfolio() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('fund_portfolio')
     .select('fund_id, fund_company, vehicle, strategy, operation_type, snap_date, investment_committed, investment_value')
     .order('snap_date', { ascending: false })
@@ -686,7 +687,7 @@ async function onFundChangeSnapshot(sel) {
   const sc = document.getElementById('sn_share_class_id');
   sc.innerHTML = '<option value="">— Chargement… —</option>';
   if (!sel.value) { sc.innerHTML = '<option value="">— Sélectionner —</option>'; return; }
-  const { data } = await supabase
+  const { data } = await supabaseClient
     .from('share_class_static_data')
     .select('share_class_id, share_class_name')
     .eq('fund_id', sel.value)
@@ -722,7 +723,7 @@ async function saveFund() {
     return showError('fund', 'Nom, code, forme juridique et type sont obligatoires.');
   }
   setSaving('fund', true);
-  const { error } = await supabase.from('fund_static_data').insert({
+  const { error } = await supabaseClient.from('fund_static_data').insert({
     fund_id:              v('f_fund_id'),
     fund_name:            v('f_fund_name'),
     legal_form:           v('f_legal_form'),
@@ -752,7 +753,7 @@ async function saveShare() {
   const isin = v('s_isin_code');
   if (!/^[A-Z]{2}[A-Z0-9]{10}$/.test(isin)) return showError('share', 'Format ISIN invalide (ex. FR0014004909)');
   setSaving('share', true);
-  const { error } = await supabase.from('share_class_static_data').insert({
+  const { error } = await supabaseClient.from('share_class_static_data').insert({
     fund_id:               v('s_fund_id'),
     share_class_id:        document.getElementById('s_share_class_id').value,
     share_class_name:      v('s_share_class_name'),
@@ -776,7 +777,7 @@ async function saveSnapshot() {
     return showError('snapshot', 'Fonds, catégorie, date, parts émises et NAV sont obligatoires.');
   }
   setSaving('snapshot', true);
-  const { error } = await supabase.from('fund_snapshot').insert({
+  const { error } = await supabaseClient.from('fund_snapshot').insert({
     fund_code:          v('sn_fund_id'),
     share_class_id:     v('sn_share_class_id'),
     snap_date:          v('sn_snap_date'),
@@ -799,7 +800,7 @@ async function savePortfolio() {
     return showError('portfolio', 'Fonds, gestionnaire, véhicule, date, stratégie et type sont obligatoires.');
   }
   setSaving('portfolio', true);
-  const { error } = await supabase.from('fund_portfolio').insert({
+  const { error } = await supabaseClient.from('fund_portfolio').insert({
     fund_id:              v('p_fund_id'),
     fund_company:         v('p_fund_company'),
     vehicle:              v('p_vehicle'),
