@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peqan — Fund Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a18;padding:1.5rem;max-width:1100px;margin:0 auto}
+.db-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 0 0.75rem;border-bottom:1px solid rgba(0,0,0,0.1);margin-bottom:1rem}
+.db-title{font-size:15px;font-weight:500;letter-spacing:-.01em}
+.db-subtitle{font-size:12px;color:#888;margin-top:2px}
+.config-banner{background:#fffbea;border:1px solid #f5c842;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#7a5c00;display:flex;gap:10px;align-items:flex-start}
+.config-banner code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+.filter-bar select{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer}
+.filter-bar label{font-size:11px;color:#666}
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1rem}
+.metric-card{background:#ebebea;border-radius:8px;padding:.75rem 1rem}
+.metric-label{font-size:11px;color:#666;margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:500;line-height:1.1}
+.metric-sub{font-size:11px;color:#999;margin-top:3px}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+@media(max-width:600px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:12px;padding:1rem}
+.chart-title{font-size:12px;font-weight:500;color:#666;margin-bottom:.75rem}
+.chart-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.chart-legend span{display:flex;align-items:center;gap:4px;font-size:10px;color:#666}
+.chart-legend em{width:9px;height:9px;border-radius:2px;display:inline-block}
+.fund-table-wrap{background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:12px;overflow:hidden;margin-bottom:1rem}
+.fund-table-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid rgba(0,0,0,0.08)}
+.fund-table-title{font-size:12px;font-weight:500;color:#666}
+table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px}
+thead th{padding:8px 12px;text-align:left;color:#999;font-weight:400;border-bottom:1px solid rgba(0,0,0,0.08);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tbody td{padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#f8f8f6;cursor:pointer}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px}
+.badge-fcpr{background:#EAF3DE;color:#3B6D11}
+.badge-fps{background:#FAEEDA;color:#854F0B}
+.badge-fpci{background:#E6F1FB;color:#185FA5}
+.called-bar-wrap{display:flex;align-items:center;gap:6px}
+.called-bar-bg{flex:1;height:4px;background:#e0e0de;border-radius:2px;overflow:hidden}
+.called-bar-fill{height:100%;border-radius:2px}
+.drill-panel{background:#f0f0ee;border:1px solid #ccc;border-radius:12px;padding:1rem;margin-bottom:1rem;display:none}
+.drill-panel.visible{display:block}
+.drill-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.drill-title{font-size:13px;font-weight:500}
+.drill-close{font-size:11px;color:#999;cursor:pointer;padding:4px 8px;border:1px solid #ccc;border-radius:6px;background:#fff}
+.drill-tabs{display:flex;gap:4px;margin-bottom:.75rem}
+.drill-tab{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid #ccc;cursor:pointer;background:transparent;color:#666}
+.drill-tab.active{background:#fff;color:#1a1a18;border-color:#999}
+.drill-metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:.75rem}
+.drill-metric{background:#fff;border-radius:8px;padding:.6rem .8rem;border:1px solid rgba(0,0,0,0.08)}
+.drill-label{font-size:10px;color:#999;margin-bottom:2px}
+.drill-value{font-size:14px;font-weight:500}
+.sc-table,.port-table{width:100%;font-size:11px;border-collapse:collapse}
+.sc-table th,.port-table th{padding:6px 8px;text-align:left;color:#999;font-weight:400;border-bottom:1px solid rgba(0,0,0,0.08)}
+.sc-table td,.port-table td{padding:6px 8px;border-bottom:1px solid rgba(0,0,0,0.06)}
+.sc-table tr:last-child td,.port-table tr:last-child td{border-bottom:none}
+.port-table tr:hover{background:#f8f8f6}
+.sc-table code{font-family:monospace;font-size:10px;color:#999}
+.moic-positive{color:#1D9E75}
+.moic-neutral{color:#BA7517}
+.moic-negative{color:#D85A30}
+.supabase-note{font-size:10px;color:#999;margin-top:6px;font-style:italic}
+</style>
+</head>
+<body>
+
+<div class="config-banner">
+  <span>⚙️</span>
+  <span>
+    <strong>Pour connecter Supabase</strong> : renseigner <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code> dans le bloc de configuration en bas du fichier. Les données de démonstration seront remplacées par les données réelles de ta base.
+  </span>
+</div>
+
+<div class="db-header">
+  <div>
+    <div class="db-title">Peqan — Fund Dashboard</div>
+    <div class="db-subtitle">Golden source · Pilotage interne</div>
+  </div>
+  <div style="font-size:11px;color:#999">Snapshot : <span id="snap-label">30/06/2025</span></div>
+</div>
+
+<div class="filter-bar">
+  <label>Snapshot</label>
+  <select id="filter-snap">
+    <option value="2025-06-30">30/06/2025</option>
+    <option value="2024-12-31">31/12/2024</option>
+    <option value="2024-06-30">30/06/2024</option>
+    <option value="2023-12-31">31/12/2023</option>
+    <option value="2023-06-30">30/06/2023</option>
+    <option value="2022-12-31">31/12/2022</option>
+    <option value="2022-06-30">30/06/2022</option>
+  </select>
+  <label>Fonds</label>
+  <select id="filter-fund">
+    <option value="all">Tous les fonds</option>
+    <option value="FIA1">Peqan Co Investissement 2022</option>
+    <option value="FIA2">Peqan Convictions 2023</option>
+    <option value="FIA3">Peqan Convictions Secondaires</option>
+    <option value="FIA4">Peqan BEX IV Feeder</option>
+    <option value="FIA5">Peqan BEX V Feeder</option>
+  </select>
+</div>
+
+<div class="metrics-grid" id="metrics-grid"></div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-title">NAV consolidée — évolution (k€)</div>
+    <div style="position:relative;width:100%;height:180px"><canvas id="chart-nav"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Portefeuille — répartition par valeur (30/06/2025)</div>
+    <div id="port-legend" class="chart-legend"></div>
+    <div style="position:relative;width:100%;height:150px"><canvas id="chart-port"></canvas></div>
+  </div>
+</div>
+
+<div class="drill-panel" id="drill-panel">
+  <div class="drill-header">
+    <span class="drill-title" id="drill-fund-name">Détail</span>
+    <button class="drill-close" onclick="closeDrill()">fermer ×</button>
+  </div>
+  <div class="drill-tabs">
+    <button class="drill-tab active" onclick="showTab('overview')">Vue d'ensemble</button>
+    <button class="drill-tab" onclick="showTab('classes')">Classes de parts</button>
+    <button class="drill-tab" onclick="showTab('portfolio')">Portefeuille</button>
+  </div>
+  <div id="tab-overview"></div>
+  <div id="tab-classes" style="display:none"></div>
+  <div id="tab-portfolio" style="display:none"></div>
+</div>
+
+<div class="fund-table-wrap">
+  <div class="fund-table-header">
+    <div class="fund-table-title">Fonds — vue consolidée</div>
+    <div style="font-size:11px;color:#999">Cliquer sur une ligne pour le détail</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:26%">Fonds</th>
+        <th style="width:9%">Forme</th>
+        <th style="width:14%">NAV</th>
+        <th style="width:18%">Capital appelé</th>
+        <th style="width:13%">Engagement</th>
+        <th style="width:10%">Parts</th>
+        <th style="width:10%">Frais gest.</th>
+      </tr>
+    </thead>
+    <tbody id="fund-tbody"></tbody>
+  </table>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ─────────────────────────────────────────────
+// CONFIGURATION SUPABASE
+// Remplacer ces valeurs pour connecter la base
+// ─────────────────────────────────────────────
+const SUPABASE_URL = '';       // ex: https://xxxx.supabase.co
+const SUPABASE_ANON_KEY = '';  // clé anon publique du projet
+
+// Si les clés sont renseignées, les données Supabase remplacent les données statiques
+const USE_SUPABASE = SUPABASE_URL !== '' && SUPABASE_ANON_KEY !== '';
+
+async function supabaseFetch(table, params = '') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  });
+  return res.json();
+}
+
+// ─────────────────────────────────────────────
+// DONNÉES STATIQUES (actives si Supabase non configuré)
+// ─────────────────────────────────────────────
+const FUNDS_STATIC = [
+  {fund_id:'FIA1',fund_name:'Peqan Co Investissement 2022',legal_form:'FCPR',inception_date:'2022-01-17',sfdr_article:6,fund_life_years:10},
+  {fund_id:'FIA2',fund_name:'Peqan Convictions 2023',legal_form:'FCPR',inception_date:'2023-12-25',sfdr_article:6,fund_life_years:10},
+  {fund_id:'FIA3',fund_name:'Peqan Convictions Secondaires',legal_form:'FPS',inception_date:'2023-12-25',sfdr_article:6,fund_life_years:10},
+  {fund_id:'FIA4',fund_name:'Peqan BEX IV Feeder',legal_form:'FPCI',inception_date:'2023-12-25',sfdr_article:6,fund_life_years:10},
+  {fund_id:'FIA5',fund_name:'Peqan BEX V Feeder',legal_form:'FPCI',inception_date:'2023-12-25',sfdr_article:6,fund_life_years:10},
+];
+
+const SHARE_CLASSES_STATIC = [
+  {fund_id:'FIA1',id:'FIA1A1',name:'A1',isin:'FR0014004909',nominal:100,mgmt_fee:0.018,distrib_fee:0.008},
+  {fund_id:'FIA1',id:'FIA1A2',name:'A2',isin:'FR0014004917',nominal:100,mgmt_fee:0.0165,distrib_fee:0.008},
+  {fund_id:'FIA1',id:'FIA1A3',name:'A3',isin:'FR0014004925',nominal:100,mgmt_fee:0.015,distrib_fee:0.008},
+  {fund_id:'FIA1',id:'FIA1A4',name:'A4',isin:'FR0014004933',nominal:100,mgmt_fee:0.008,distrib_fee:0.0},
+  {fund_id:'FIA1',id:'FIA1B', name:'B', isin:'FR0014004941',nominal:5000,mgmt_fee:0.0,distrib_fee:0.0},
+];
+
+const ALL_SNAPSHOTS_STATIC = [
+  {fund_id:'FIA1',snap_date:'2022-06-30',shares_issued:42969,called_pct:0.20,commitment:13363600,nav:2929778},
+  {fund_id:'FIA1',snap_date:'2022-12-31',shares_issued:190553,called_pct:0.40,commitment:19009000,nav:8705262},
+  {fund_id:'FIA1',snap_date:'2023-06-30',shares_issued:268250,called_pct:0.55,commitment:51704424,nav:16379809},
+  {fund_id:'FIA1',snap_date:'2023-12-31',shares_issued:287866,called_pct:0.70,commitment:51704424,nav:22506201},
+  {fund_id:'FIA1',snap_date:'2024-06-30',shares_issued:287866,called_pct:0.85,commitment:23704424,nav:27575453},
+  {fund_id:'FIA1',snap_date:'2024-12-31',shares_issued:287866,called_pct:0.85,commitment:20962223,nav:28143465},
+  {fund_id:'FIA1',snap_date:'2025-06-30',shares_issued:287907,called_pct:1.00,commitment:28957324,nav:31744501},
+];
+
+const SNAPSHOTS_BY_CLASS_STATIC = {
+  '2025-06-30':[
+    {fund_id:'FIA1',sc:'A1',sc_id:'FIA1A1',shares:57815.08,called:1.0,commit:5781533,nav:6159497},
+    {fund_id:'FIA1',sc:'A2',sc_id:'FIA1A2',shares:79529.45,called:1.0,commit:7952952,nav:8518117},
+    {fund_id:'FIA1',sc:'A3',sc_id:'FIA1A3',shares:34805.38,called:1.0,commit:3480538,nav:3746416},
+    {fund_id:'FIA1',sc:'A4',sc_id:'FIA1A4',shares:115723,called:1.0,commit:11572301,nav:12739446},
+    {fund_id:'FIA1',sc:'B', sc_id:'FIA1B', shares:34,called:1.0,commit:170000,nav:581024},
+  ],
+  '2024-12-31':[
+    {fund_id:'FIA1',sc:'A1',sc_id:'FIA1A1',shares:57815.08,called:0.85,commit:3088448,nav:5372243},
+    {fund_id:'FIA1',sc:'A2',sc_id:'FIA1A2',shares:79529.45,called:0.85,commit:5307525,nav:7428700},
+    {fund_id:'FIA1',sc:'A3',sc_id:'FIA1A3',shares:34805.38,called:0.85,commit:2625000,nav:3266981},
+    {fund_id:'FIA1',sc:'A4',sc_id:'FIA1A4',shares:115723,called:0.85,commit:9796750,nav:11104751},
+    {fund_id:'FIA1',sc:'B', sc_id:'FIA1B', shares:34,called:0.85,commit:144500,nav:570790},
+  ],
+};
+
+const PORTFOLIO_STATIC = [
+  {fund_id:'FIA1',company:'BEX CAPITAL',vehicle:'BEX FUND IV',strategy:'Secondaire – LP Led',op_type:'Primaire',committed:7000000,prix:3751052,value:4830005},
+  {fund_id:'FIA1',company:'LGT CAPITAL',vehicle:'CROWN COINVEST OPP III',strategy:'Buyout',op_type:'Primaire',committed:8000000,prix:6327199,value:7823542},
+  {fund_id:'FIA1',company:'ADAGIA CAPITAL',vehicle:'ADAGIA CAPITAL EUROPE S.L.P.',strategy:'Buyout',op_type:'Primaire',committed:2200000,prix:1252218,value:1423154},
+  {fund_id:'FIA1',company:'NORD HOLDING',vehicle:'NKB COINVEST IX GMBH & Co.',strategy:'Buyout',op_type:'Primaire',committed:4820000,prix:1305591,value:1450215},
+  {fund_id:'FIA1',company:'QUADRILLE CAPITAL',vehicle:'QUADRILLE SECONDARY II',strategy:'Secondaire – LP Led',op_type:'Primaire',committed:2000000,prix:1534000,value:1856714},
+  {fund_id:'FIA1',company:'PROVALIA INVEST',vehicle:'PROVAL S1',strategy:'Secondaire – Mixte',op_type:'Primaire',committed:2000000,prix:1698699,value:2154940},
+  {fund_id:'FIA1',company:'ARDIAN',vehicle:'ARDIAN CONV VI EUROPE',strategy:'Buyout',op_type:'Primaire',committed:2500000,prix:1208756,value:1365713},
+  {fund_id:'FIA1',company:'ARDIAN',vehicle:'ARDIAN CONV VI NORTH AMERICA',strategy:'Buyout',op_type:'Primaire',committed:2500000,prix:1107948,value:1144287},
+  {fund_id:'FIA1',company:'VERTO',vehicle:'DRIVE INVEST – DRIVE GTI',strategy:'Buyout',op_type:'Direct',committed:1000000,prix:1093256,value:1874436},
+  {fund_id:'FIA1',company:'ARCHIMED',vehicle:'MPI COI SUAN',strategy:'Buyout',op_type:'Direct',committed:2500000,prix:2585447,value:1346107},
+  {fund_id:'FIA1',company:'COLUMNA CAPITAL',vehicle:'COLUMNA BIANAISE S.à r.l.',strategy:'Buyout',op_type:'Direct',committed:2500000,prix:2069726,value:2800032},
+  {fund_id:'FIA1',company:'CASH',vehicle:'CASH',strategy:'Cash',op_type:'Cash',committed:3668635,prix:3668635,value:3668635},
+];
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let FUNDS = FUNDS_STATIC;
+let SHARE_CLASSES = SHARE_CLASSES_STATIC;
+let ALL_SNAPSHOTS = ALL_SNAPSHOTS_STATIC;
+let SNAPSHOTS_BY_CLASS = SNAPSHOTS_BY_CLASS_STATIC;
+let PORTFOLIO = PORTFOLIO_STATIC;
+
+let currentSnapDate = '2025-06-30';
+let currentFund = 'all';
+let navChart, portChart;
+
+// ─────────────────────────────────────────────
+// FORMATTERS
+// ─────────────────────────────────────────────
+const fmt = (n,d=0) => n==null?'—':new Intl.NumberFormat('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(n);
+const fmtMM = n => (n/1000000).toFixed(2).replace('.',',')+' M€';
+const fmtM  = n => fmt(Math.round(n/1000))+' k€';
+const fmtPct  = n => (n*100).toFixed(1)+' %';
+const fmtRate = n => (n*100).toFixed(2)+' %';
+const calledColor = p => p>=0.95?'#1D9E75':p>=0.6?'#BA7517':'#D85A30';
+const moicCls = m => m>=1.2?'moic-positive':m>=1.0?'moic-neutral':'moic-negative';
+
+// ─────────────────────────────────────────────
+// DATA HELPERS
+// ─────────────────────────────────────────────
+function getSnap(fund_id) {
+  return ALL_SNAPSHOTS.find(s=>s.fund_id===fund_id&&s.snap_date===currentSnapDate)||null;
+}
+function filteredFunds() {
+  return currentFund==='all'?FUNDS:FUNDS.filter(f=>f.fund_id===currentFund);
+}
+
+// ─────────────────────────────────────────────
+// RENDER FUNCTIONS
+// ─────────────────────────────────────────────
+function renderMetrics() {
+  const funds = filteredFunds();
+  const snaps = funds.map(f=>getSnap(f.fund_id)).filter(Boolean);
+  const totalNAV    = snaps.reduce((a,s)=>a+s.nav,0);
+  const totalCommit = snaps.reduce((a,s)=>a+s.commitment,0);
+  const avgCalled   = snaps.length?snaps.reduce((a,s)=>a+s.called_pct,0)/snaps.length:0;
+  const totalShares = snaps.reduce((a,s)=>a+s.shares_issued,0);
+  const scCount = SHARE_CLASSES.filter(sc=>funds.some(f=>f.fund_id===sc.fund_id)).length;
+  document.getElementById('metrics-grid').innerHTML=`
+    <div class="metric-card"><div class="metric-label">NAV totale</div><div class="metric-value">${fmtMM(totalNAV)}</div><div class="metric-sub">${funds.length} fonds · ${currentSnapDate}</div></div>
+    <div class="metric-card"><div class="metric-label">Engagements</div><div class="metric-value">${fmtMM(totalCommit)}</div><div class="metric-sub">Capital souscrit</div></div>
+    <div class="metric-card"><div class="metric-label">Capital appelé moy.</div><div class="metric-value" style="color:${calledColor(avgCalled)}">${fmtPct(avgCalled)}</div><div class="metric-sub">${snaps.length} fonds avec données</div></div>
+    <div class="metric-card"><div class="metric-label">Parts émises</div><div class="metric-value">${fmt(Math.round(totalShares))}</div><div class="metric-sub">${scCount} classes de parts</div></div>
+  `;
+}
+
+function renderNAVChart() {
+  const fund_id = currentFund==='all'?'FIA1':currentFund;
+  const snaps = ALL_SNAPSHOTS.filter(s=>s.fund_id===fund_id).sort((a,b)=>a.snap_date.localeCompare(b.snap_date));
+  const labels = snaps.map(s=>s.snap_date.slice(2).replace('-','/'));
+  const data = snaps.map(s=>Math.round(s.nav/1000));
+  if(navChart) navChart.destroy();
+  navChart = new Chart(document.getElementById('chart-nav'),{
+    type:'line',
+    data:{labels,datasets:[{data,borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,0.07)',fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:'#185FA5',borderWidth:1.5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)+' k€'}}},scales:{x:{ticks:{font:{size:9},color:'#888'},grid:{display:false},border:{display:false}},y:{ticks:{font:{size:9},color:'#888',callback:v=>v>=1000?(v/1000).toFixed(0)+'M':v},grid:{color:'rgba(0,0,0,0.06)'},border:{display:false}}}}
+  });
+}
+
+const PORT_COLORS=['#185FA5','#1D9E75','#D85A30','#534AB7','#BA7517','#3B6D11','#993C1D','#854F0B','#0F6E56','#9FE1CB','#5DCAA5','#B4B2A9'];
+
+function renderPortChart() {
+  const portData = PORTFOLIO.filter(p=>p.strategy!=='Cash');
+  const seen = {};
+  const labels = portData.map(p=>{
+    const key = p.company;
+    seen[key]=(seen[key]||0)+1;
+    return seen[key]>1?p.company+' ('+p.vehicle.split(' ').pop()+')':p.company;
+  });
+  document.getElementById('port-legend').innerHTML=portData.map((p,i)=>`<span><em style="background:${PORT_COLORS[i]}"></em>${p.company}</span>`).join('');
+  if(portChart) portChart.destroy();
+  portChart = new Chart(document.getElementById('chart-port'),{
+    type:'doughnut',
+    data:{labels,datasets:[{data:portData.map(p=>p.value),backgroundColor:PORT_COLORS.slice(0,portData.length),borderWidth:1,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmtM(ctx.raw)}}},cutout:'60%'}
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('fund-tbody');
+  tbody.innerHTML='';
+  filteredFunds().forEach(f=>{
+    const snap = getSnap(f.fund_id);
+    const sc = SHARE_CLASSES.filter(x=>x.fund_id===f.fund_id);
+    const avgMgmt = sc.length?sc.reduce((a,x)=>a+x.mgmt_fee,0)/sc.length:null;
+    const pct = snap?snap.called_pct:0;
+    const tr = document.createElement('tr');
+    tr.innerHTML=`
+      <td title="${f.fund_name}">${f.fund_name}</td>
+      <td><span class="badge badge-${f.legal_form.toLowerCase()}">${f.legal_form}</span></td>
+      <td>${snap?fmtMM(snap.nav):'—'}</td>
+      <td>${snap?`<div class="called-bar-wrap"><div class="called-bar-bg"><div class="called-bar-fill" style="width:${Math.min(pct*100,100)}%;background:${calledColor(pct)}"></div></div><span style="font-size:11px;color:${calledColor(pct)};min-width:38px">${fmtPct(pct)}</span></div>`:'—'}</td>
+      <td>${snap?fmtMM(snap.commitment):'—'}</td>
+      <td>${snap?fmt(Math.round(snap.shares_issued)):'—'}</td>
+      <td>${avgMgmt!=null?fmtRate(avgMgmt):'—'}</td>
+    `;
+    tr.onclick=()=>openDrill(f.fund_id);
+    tbody.appendChild(tr);
+  });
+}
+
+// ─────────────────────────────────────────────
+// DRILL-DOWN
+// ─────────────────────────────────────────────
+function openDrill(fund_id) {
+  const fund = FUNDS.find(f=>f.fund_id===fund_id);
+  const snap = getSnap(fund_id);
+  document.getElementById('drill-fund-name').textContent=fund.fund_name;
+  const panel = document.getElementById('drill-panel');
+  panel._fund_id=fund_id; panel._snap=snap;
+  renderTab(fund_id,snap,'overview');
+  showTab('overview');
+  panel.classList.add('visible');
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closeDrill(){document.getElementById('drill-panel').classList.remove('visible');}
+
+function showTab(tab){
+  ['overview','classes','portfolio'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('.drill-tab').forEach((btn,i)=>{
+    btn.classList.toggle('active',['overview','classes','portfolio'][i]===tab);
+  });
+  const p=document.getElementById('drill-panel');
+  if(p._fund_id) renderTab(p._fund_id,p._snap,tab);
+}
+
+function renderTab(fund_id,snap,tab){
+  const fund=FUNDS.find(f=>f.fund_id===fund_id);
+  const sc=SHARE_CLASSES.filter(x=>x.fund_id===fund_id);
+
+  if(tab==='overview'){
+    const moic=snap&&snap.commitment>0?snap.nav/snap.commitment:null;
+    document.getElementById('tab-overview').innerHTML=`
+      <div class="drill-metrics-grid">
+        <div class="drill-metric"><div class="drill-label">NAV</div><div class="drill-value">${snap?fmtMM(snap.nav):'—'}</div></div>
+        <div class="drill-metric"><div class="drill-label">Engagements</div><div class="drill-value">${snap?fmtMM(snap.commitment):'—'}</div></div>
+        <div class="drill-metric"><div class="drill-label">Capital appelé</div><div class="drill-value" style="color:${snap?calledColor(snap.called_pct):'inherit'}">${snap?fmtPct(snap.called_pct):'—'}</div></div>
+        <div class="drill-metric"><div class="drill-label">Parts émises</div><div class="drill-value">${snap?fmt(Math.round(snap.shares_issued)):'—'}</div></div>
+        <div class="drill-metric"><div class="drill-label">MOIC (NAV/Commit.)</div><div class="drill-value ${moic?moicCls(moic):''}">${moic?moic.toFixed(2)+'x':'—'}</div></div>
+        <div class="drill-metric"><div class="drill-label">Forme juridique</div><div class="drill-value">${fund.legal_form}</div></div>
+        <div class="drill-metric"><div class="drill-label">SFDR</div><div class="drill-value">Article ${fund.sfdr_article}</div></div>
+        <div class="drill-metric"><div class="drill-label">Durée</div><div class="drill-value">${fund.fund_life_years} ans</div></div>
+      </div>`;
+  }
+
+  if(tab==='classes'){
+    const classSnaps=(SNAPSHOTS_BY_CLASS[currentSnapDate]||SNAPSHOTS_BY_CLASS['2025-06-30']||[]);
+    const rows=sc.map(c=>{
+      const cs=classSnaps.find(x=>x.sc_id===c.id);
+      return `<tr>
+        <td style="font-weight:500">${c.name}</td>
+        <td><code>${c.isin}</code></td>
+        <td style="text-align:right">${fmt(c.nominal)} €</td>
+        <td style="text-align:right">${fmtRate(c.mgmt_fee)}</td>
+        <td style="text-align:right">${fmtRate(c.distrib_fee)}</td>
+        <td style="text-align:right">${cs?fmt(Math.round(cs.shares)):'—'}</td>
+        <td style="text-align:right">${cs?fmtMM(cs.nav):'—'}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('tab-classes').innerHTML=`
+      <table class="sc-table">
+        <thead><tr><th>Classe</th><th>ISIN</th><th style="text-align:right">Nominal</th><th style="text-align:right">Frais gest.</th><th style="text-align:right">Frais distrib.</th><th style="text-align:right">Parts</th><th style="text-align:right">NAV</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  if(tab==='portfolio'){
+    const port=PORTFOLIO.filter(p=>p.fund_id===fund_id&&p.strategy!=='Cash');
+    const cash=PORTFOLIO.filter(p=>p.fund_id===fund_id&&p.strategy==='Cash');
+    const totalPrix=port.reduce((a,p)=>a+p.prix,0);
+    const totalValue=port.reduce((a,p)=>a+p.value,0);
+    const globalMoic=totalPrix>0?totalValue/totalPrix:null;
+    const rows=port.sort((a,b)=>b.value-a.value).map(p=>{
+      const moic=p.prix>0?p.value/p.prix:null;
+      return `<tr>
+        <td style="font-weight:500;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.company}">${p.company}</td>
+        <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#666" title="${p.vehicle}">${p.vehicle}</td>
+        <td>${p.strategy}</td>
+        <td>${p.op_type}</td>
+        <td style="text-align:right">${fmtM(p.prix)}</td>
+        <td style="text-align:right">${fmtM(p.value)}</td>
+        <td style="text-align:right" class="${moic?moicCls(moic):''}">${moic?moic.toFixed(2)+'x':'—'}</td>
+      </tr>`;
+    }).join('');
+    const cashRow=cash.length?`<tr style="color:#999"><td colspan="5">Trésorerie (CASH)</td><td style="text-align:right">${fmtM(cash[0].value)}</td><td style="text-align:right">—</td></tr>`:'';
+    document.getElementById('tab-portfolio').innerHTML=`
+      <div class="drill-metrics-grid" style="margin-bottom:.75rem">
+        <div class="drill-metric"><div class="drill-label">Prix total investi</div><div class="drill-value">${fmtMM(totalPrix)}</div></div>
+        <div class="drill-metric"><div class="drill-label">Valeur totale</div><div class="drill-value">${fmtMM(totalValue)}</div></div>
+        <div class="drill-metric"><div class="drill-label">MOIC (valeur / prix)</div><div class="drill-value ${globalMoic?moicCls(globalMoic):''}">${globalMoic?globalMoic.toFixed(2)+'x':'—'}</div></div>
+        <div class="drill-metric"><div class="drill-label">Lignes</div><div class="drill-value">${port.length}</div></div>
+      </div>
+      <table class="port-table">
+        <thead><tr><th>GP</th><th>Véhicule</th><th>Stratégie</th><th>Type</th><th style="text-align:right">Prix</th><th style="text-align:right">Valeur</th><th style="text-align:right">MOIC</th></tr></thead>
+        <tbody>${rows}${cashRow}</tbody>
+      </table>
+      <p class="supabase-note">MOIC = valeur / prix · Données portefeuille au 30/06/2025 · Hors CASH</p>`;
+  }
+}
+
+// ─────────────────────────────────────────────
+// SUPABASE LOADER (si configuré)
+// ─────────────────────────────────────────────
+async function loadFromSupabase() {
+  try {
+    const [funds, shareClasses, snapshots, portfolio] = await Promise.all([
+      supabaseFetch('fund_static_data', 'select=*'),
+      supabaseFetch('share_class_static_data', 'select=*'),
+      supabaseFetch('fund_snapshot', 'select=*&order=snap_date.asc'),
+      supabaseFetch('fund_portfolio', 'select=*'),
+    ]);
+    // Mapper vers le format interne
+    FUNDS = funds.map(f=>({fund_id:f.fund_id,fund_name:f.fund_name,legal_form:f.legal_form,inception_date:f.inception_date,sfdr_article:f.sfdr_article,fund_life_years:f.fund_life_years}));
+    SHARE_CLASSES = shareClasses.map(c=>({fund_id:c.Fund_id||c.fund_id,id:c.share_class_id,name:c.share_class_name,isin:c.isin_code,nominal:c.nominal_value,mgmt_fee:c.management_fee_rate,distrib_fee:c.distribution_fee_rate}));
+    ALL_SNAPSHOTS = snapshots.map(s=>({fund_id:s.Fund_id||s.fund_id,snap_date:s.snap_date?.substring(0,10),shares_issued:s.shares_issued,called_pct:s.called_percentage,commitment:s.commitment_amount,nav:s.net_asset_value}));
+    PORTFOLIO = portfolio.map(p=>({fund_id:p.fund_id,company:p.fund_company,vehicle:p.vehicle,strategy:p.strategy,op_type:p.operation_type,committed:p.investment_committed,prix:p.prix,value:p.investment_value}));
+    console.log('Supabase chargé :', FUNDS.length, 'fonds,', ALL_SNAPSHOTS.length, 'snapshots');
+  } catch(e) {
+    console.warn('Erreur Supabase, données statiques utilisées :', e);
+  }
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.getElementById('filter-snap').onchange = e => { currentSnapDate=e.target.value; update(); };
+document.getElementById('filter-fund').onchange = e => { currentFund=e.target.value; update(); };
+
+function update(){
+  renderMetrics();
+  renderNAVChart();
+  renderPortChart();
+  renderTable();
+  closeDrill();
+}
+
+async function init(){
+  if(USE_SUPABASE) await loadFromSupabase();
+  update();
+}
+
+init();
+</script>
+</body>
+</html>
