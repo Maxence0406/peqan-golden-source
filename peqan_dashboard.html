@@ -456,7 +456,7 @@ function renderTab(fund_id,snap,tab){
 // ─────────────────────────────────────────────
 // SUPABASE LOADER (si configuré)
 // ─────────────────────────────────────────────
-aasync function loadFromSupabase() {
+async function loadFromSupabase() {
   try {
     const [funds, shareClasses, snapshots, portfolio] = await Promise.all([
       supabaseFetch('fund_static_data', 'select=*'),
