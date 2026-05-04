@@ -456,7 +456,7 @@ function renderTab(fund_id,snap,tab){
 // ─────────────────────────────────────────────
 // SUPABASE LOADER (si configuré)
 // ─────────────────────────────────────────────
-async function loadFromSupabase() {
+aasync function loadFromSupabase() {
   try {
     const [funds, shareClasses, snapshots, portfolio] = await Promise.all([
       supabaseFetch('fund_static_data', 'select=*'),
@@ -464,12 +464,79 @@ async function loadFromSupabase() {
       supabaseFetch('fund_snapshot', 'select=*&order=snap_date.asc'),
       supabaseFetch('fund_portfolio', 'select=*'),
     ]);
-    // Mapper vers le format interne
-    FUNDS = funds.map(f=>({fund_id:f.fund_id,fund_name:f.fund_name,legal_form:f.legal_form,inception_date:f.inception_date,sfdr_article:f.sfdr_article,fund_life_years:f.fund_life_years}));
-    SHARE_CLASSES = shareClasses.map(c=>({fund_id:c.Fund_id||c.fund_id,id:c.share_class_id,name:c.share_class_name,isin:c.isin_code,nominal:c.nominal_value,mgmt_fee:c.management_fee_rate,distrib_fee:c.distribution_fee_rate}));
-    ALL_SNAPSHOTS = snapshots.map(s=>({fund_id:s.Fund_id||s.fund_id,snap_date:s.snap_date?.substring(0,10),shares_issued:s.shares_issued,called_pct:s.called_percentage,commitment:s.commitment_amount,nav:s.net_asset_value}));
-    PORTFOLIO = portfolio.map(p=>({fund_id:p.fund_id,company:p.fund_company,vehicle:p.vehicle,strategy:p.strategy,op_type:p.operation_type,committed:p.investment_committed,prix:p.prix,value:p.investment_value}));
-    console.log('Supabase chargé :', FUNDS.length, 'fonds,', ALL_SNAPSHOTS.length, 'snapshots');
+
+    FUNDS = funds.map(f => ({
+      fund_id: f.fund_id,
+      fund_name: f.fund_name,
+      legal_form: f.legal_form,
+      inception_date: f.inception_date,
+      sfdr_article: f.sfdr_article,
+      fund_life_years: f.fund_life_years
+    }));
+
+    SHARE_CLASSES = shareClasses.map(c => ({
+      fund_id: c.fund_id,
+      id: c.share_class_id,
+      name: c.share_class_name,
+      isin: c.isin_code,
+      nominal: c.nominal_value,
+      mgmt_fee: c.management_fee_rate || 0,
+      distrib_fee: c.distribution_fee_rate || 0
+    }));
+
+    // Agréger les snapshots par fund_id + snap_date (somme des classes de parts)
+    const snapMap = {};
+    snapshots.forEach(s => {
+      const date = s.snap_date?.substring(0, 10);
+      const key = `${s.fund_id}__${date}`;
+      if (!snapMap[key]) {
+        snapMap[key] = {
+          fund_id: s.fund_id,
+          snap_date: date,
+          shares_issued: 0,
+          called_pct_sum: 0,
+          called_pct_count: 0,
+          commitment: 0,
+          nav: 0
+        };
+      }
+      snapMap[key].shares_issued += s.shares_issued || 0;
+      snapMap[key].called_pct_sum += s.called_percentage || 0;
+      snapMap[key].called_pct_count += 1;
+      snapMap[key].commitment += s.commitment_amount || 0;
+      snapMap[key].nav += s.net_asset_value || 0;
+    });
+    ALL_SNAPSHOTS = Object.values(snapMap).map(s => ({
+      fund_id: s.fund_id,
+      snap_date: s.snap_date,
+      shares_issued: s.shares_issued,
+      called_pct: s.called_pct_count > 0 ? s.called_pct_sum / s.called_pct_count : 0,
+      commitment: s.commitment,
+      nav: s.nav
+    }));
+
+    // Portefeuille : garder uniquement le dernier snapshot par fund_id
+    const latestPortDate = {};
+    portfolio.forEach(p => {
+      const date = p.snap_date?.substring(0, 10);
+      if (!latestPortDate[p.fund_id] || date > latestPortDate[p.fund_id]) {
+        latestPortDate[p.fund_id] = date;
+      }
+    });
+    PORTFOLIO = portfolio
+      .filter(p => p.snap_date?.substring(0, 10) === latestPortDate[p.fund_id])
+      .map(p => ({
+        fund_id: p.fund_id,
+        company: p.fund_company,
+        vehicle: p.vehicle,
+        strategy: p.strategy,
+        op_type: p.operation_type || 'n.a.',
+        committed: p.investment_committed,
+        prix: p.prix,
+        value: p.investment_value
+      }));
+
+    console.log('Supabase chargé :', FUNDS.length, 'fonds,', ALL_SNAPSHOTS.length, 'snapshots,', PORTFOLIO.length, 'lignes portfolio');
   } catch(e) {
     console.warn('Erreur Supabase, données statiques utilisées :', e);
   }
