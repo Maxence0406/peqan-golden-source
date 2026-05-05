@@ -352,7 +352,7 @@ function renderTab(fund_id, snap, tab) {
       '<div class="drill-metric"><div class="drill-label">Engagements</div><div class="drill-value">' + (snap ? fmtMM(snap.commitment) : '—') + '</div></div>' +
       '<div class="drill-metric"><div class="drill-label">Capital appele</div><div class="drill-value" style="color:' + (snap ? calledColor(snap.called_pct) : 'inherit') + '">' + (snap ? fmtPct(snap.called_pct) : '—') + '</div></div>' +
       '<div class="drill-metric"><div class="drill-label">Parts emises</div><div class="drill-value">' + (snap ? fmt(Math.round(snap.shares_issued)) : '—') + '</div></div>' +
-      '<div class="drill-metric"><div class="drill-label">TVPI (NAV/Appelé)</div>' + (moic ? moicCls(moic) : '') + '">' + (moic ? moic.toFixed(2) + 'x' : '—') + '</div></div>' +
+      '<div class="drill-metric"><div class="drill-value ' + (tvpi ? moicCls(tvpi) : '') + '">' + (tvpi ? tvpi.toFixed(2) + 'x' : '—') + '</div></div>' +
       '<div class="drill-metric"><div class="drill-label">Forme juridique</div><div class="drill-value">' + fund.legal_form + '</div></div>' +
       '<div class="drill-metric"><div class="drill-label">SFDR</div><div class="drill-value">Article ' + fund.sfdr_article + '</div></div>' +
       '<div class="drill-metric"><div class="drill-label">Duree</div><div class="drill-value">' + fund.fund_life_years + ' ans</div></div>' +
