@@ -85,7 +85,7 @@ tbody tr:hover{background:#f8f8f6;cursor:pointer}
 
 <div class="charts-grid">
   <div class="chart-card">
-    <div class="chart-title">NAV consolidée — évolution (k€)</div>
+    <div class="chart-title">AuM (Engagements) — évolution (k€)</div>
     <div style="position:relative;width:100%;height:180px"><canvas id="chart-nav"></canvas></div>
   </div>
   <div class="chart-card">
@@ -255,12 +255,12 @@ function renderNAVChart() {
     var byDate = {};
     ALL_SNAPSHOTS.forEach(function(s) {
       if (!byDate[s.snap_date]) byDate[s.snap_date] = 0;
-      byDate[s.snap_date] += s.nav;
+      byDate[s.snap_date] += s.commitment;
     });
     snaps = Object.keys(byDate).sort().map(function(d) { return {snap_date: d, nav: byDate[d]}; });
   }
   var labels = snaps.map(function(s) { return fmtDate(s.snap_date); });
-  var data = snaps.map(function(s) { return Math.round(s.nav / 1000); });
+  var data = snaps.map(function(s) { return Math.round(s.commitment / 1000); });
   if (navChart) navChart.destroy();
   navChart = new Chart(document.getElementById('chart-nav'), {
     type: 'line',
