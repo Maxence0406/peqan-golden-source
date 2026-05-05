@@ -302,19 +302,18 @@ function renderTable() {
     var tr = document.createElement('tr');
     var calledCell = snap ?
       '<div class="called-bar-wrap"><div class="called-bar-bg"><div class="called-bar-fill" style="width:' + Math.min(pct*100,100) + '%;background:' + calledColor(pct) + '"></div></div><span style="font-size:11px;color:' + calledColor(pct) + ';min-width:38px">' + fmtPct(pct) + '</span></div>' : '—';
+    var tvpi_row = snap && snap.commitment > 0 && snap.called_pct > 0 ? snap.nav / (snap.commitment * snap.called_pct) : null;
     tr.innerHTML =
       '<td title="' + f.fund_name + '">' + f.fund_name + '</td>' +
       '<td><span class="badge badge-' + f.legal_form.toLowerCase() + '">' + f.legal_form + '</span></td>' +
       '<td>' + (snap ? fmtMM(snap.nav) : '—') + '</td>' +
       '<td>' + calledCell + '</td>' +
       '<td>' + (snap ? fmtMM(snap.commitment) : '—') + '</td>' +
-      var tvpi_row = snap && snap.commitment > 0 && snap.called_pct > 0 ? snap.nav / (snap.commitment * snap.called_pct) : null;
       '<td class="' + (tvpi_row ? moicCls(tvpi_row) : '') + '">' + (tvpi_row ? tvpi_row.toFixed(2) + 'x' : '—') + '</td>';
     tr.onclick = function() { openDrill(f.fund_id); };
     tbody.appendChild(tr);
   });
 }
-
 function openDrill(fund_id) {
   var fund = FUNDS.find(function(f) { return f.fund_id === fund_id; });
   var snap = getSnap(fund_id);
