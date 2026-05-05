@@ -257,7 +257,7 @@ function renderNAVChart() {
       if (!byDate[s.snap_date]) byDate[s.snap_date] = 0;
       byDate[s.snap_date] += s.commitment;
     });
-    snaps = Object.keys(byDate).sort().map(function(d) { return {snap_date: d, nav: byDate[d]}; });
+    snaps = Object.keys(byDate).sort().map(function(d) { return {snap_date: d, commitment: byDate[d]}; });
   }
   var labels = snaps.map(function(s) { return fmtDate(s.snap_date); });
   var data = snaps.map(function(s) { return Math.round(s.commitment / 1000); });
