@@ -123,7 +123,7 @@ tbody tr:hover{background:#f8f8f6;cursor:pointer}
         <th style="width:16%">NAV</th>
         <th style="width:22%">Capital appele</th>
         <th style="width:14%">Engagement</th>
-        <th style="width:8%">Parts</th>
+        <th style="width:8%">TVPI</th>
       </tr>
     </thead>
     <tbody id="fund-tbody"></tbody>
@@ -308,7 +308,8 @@ function renderTable() {
       '<td>' + (snap ? fmtMM(snap.nav) : '—') + '</td>' +
       '<td>' + calledCell + '</td>' +
       '<td>' + (snap ? fmtMM(snap.commitment) : '—') + '</td>' +
-      '<td>' + (snap ? fmt(Math.round(snap.shares_issued)) : '—') + '</td>';
+      var tvpi_row = snap && snap.commitment > 0 && snap.called_pct > 0 ? snap.nav / (snap.commitment * snap.called_pct) : null;
+      '<td class="' + (tvpi_row ? moicCls(tvpi_row) : '') + '">' + (tvpi_row ? tvpi_row.toFixed(2) + 'x' : '—') + '</td>';
     tr.onclick = function() { openDrill(f.fund_id); };
     tbody.appendChild(tr);
   });
